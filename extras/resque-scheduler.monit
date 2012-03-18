@@ -1,0 +1,13 @@
+# Replace these with your own:
+# [PATH/TO/RESQUE]
+# [PATH/TO/RESQUE-SCHEDULER]
+# [UID]
+# [GID]
+# [APP_INCLUDE]
+
+check process resque-scheduler_worker
+  with pidfile /var/run/resque/scheduler-worker.pid
+  start program = "/bin/sh -c 'APP_INCLUDE=[APP_INCLUDE] RESQUE_PHP=[PATH/TO/RESQUE] PIDFILE=/var/run/resque/scheduler-worker.pid nohup php -f [PATH/TO/RESQUE-SCHEDULER]/resque-scheduler.php > /var/log/resque/scheduler-worker.log &'" as uid [UID] and gid [GID]
+  stop program = "/bin/sh -c 'kill -s QUIT `cat /var/run/resque/scheduler-worker.pid` && rm -f /var/run/resque/scheduler-worker.pid; exit 0;'"
+  if totalmem is greater than 300 MB for 10 cycles then restart  # eating up memory?
+  group resque-scheduler_workers
