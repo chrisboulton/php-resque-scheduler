@@ -101,7 +101,7 @@ class ResqueScheduler
 	{
 		return array(
 			'class' => $class,
-			'args'  => $args,
+			'args'  => array($args),
 			'queue' => $queue,
 		);
 	}
