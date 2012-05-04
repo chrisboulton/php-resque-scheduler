@@ -3,7 +3,7 @@
  * ResqueScheduler worker to handle scheduling of delayed tasks.
  *
  * @package		ResqueScheduler
- * @author		Chris Boulton <chris.boulton@interspire.com>
+ * @author		Chris Boulton <chris@bigcommerce.com>
  * @copyright	(c) 2012 Chris Boulton
  * @license		http://www.opensource.org/licenses/mit-license.php
  */
@@ -55,7 +55,7 @@ class ResqueScheduler_Worker
 	 */
 	public function handleDelayedItems($timestamp = null)
 	{
-		while ($timestamp = ResqueScheduler::nextDelayedTimestamp($timestamp)) {
+		while (($timestamp = ResqueScheduler::nextDelayedTimestamp($timestamp)) !== false) {
 			$this->updateProcLine('Processing Delayed Items');
 			$this->enqueueDelayedItemsForTimestamp($timestamp);
 		}
