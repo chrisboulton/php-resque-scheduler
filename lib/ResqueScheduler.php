@@ -3,7 +3,7 @@
 * ResqueScheduler core class to handle scheduling of jobs in the future.
 *
 * @package		ResqueScheduler
-* @author		Chris Boulton <chris.boulton@interspire.com>
+* @author		Chris Boulton <chris@bigcommerce.com>
 * @copyright	(c) 2012 Chris Boulton
 * @license		http://www.opensource.org/licenses/mit-license.php
 */
