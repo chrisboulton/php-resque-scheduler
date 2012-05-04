@@ -11,8 +11,8 @@ else if (!class_exists('Resque')) {
 }
 
 // Load resque-scheduler
-require_once './lib/ResqueScheduler.php';
-require_once './lib/ResqueScheduler/Worker.php';
+require_once dirname(__FILE__) . '/lib/ResqueScheduler.php';
+require_once dirname(__FILE__) . '/lib/ResqueScheduler/Worker.php';
 
 $REDIS_BACKEND = getenv('REDIS_BACKEND');
 if(!empty($REDIS_BACKEND)) {
