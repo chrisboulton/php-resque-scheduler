@@ -27,7 +27,7 @@ point in the future. The classic example is sending an email:
     require 'Resque/Resque.php';
     require 'ResqueScheduler/ResqueScheduler.php';
    
-    $in = strtotime('+5 days');
+    $in = 3600; // trigger the job in 1 hour.
     $args = array('id' => $user->id);
     ResqueScheduler::enqueueIn($in, 'email', 'SendFollowUpEmail', $args);
 
