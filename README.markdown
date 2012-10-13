@@ -27,11 +27,11 @@ point in the future. The classic example is sending an email:
     require 'Resque/Resque.php';
     require 'ResqueScheduler/ResqueScheduler.php';
    
-    $in = strtotime('+5 days');
+    $in = 3600;
     $args = array('id' => $user->id);
     ResqueScheduler::enqueueIn($in, 'email', 'SendFollowUpEmail', $args);
 
-The above will store the job for 5 days in the delayed queue, and then pull the
+The above will store the job for 1 hour in the delayed queue, and then pull the
 job off and submit it to the `email` queue in Resque for processing as soon as
 a worker is available.
 
