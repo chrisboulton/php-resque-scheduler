@@ -160,7 +160,7 @@ class ResqueScheduler
 	 *                                Defaults to now.
 	 * @return int|false UNIX timestamp, or false if nothing to run.
 	 */
-	public function nextDelayedTimestamp($at = null)
+	public static function nextDelayedTimestamp($at = null)
 	{
 		if ($at === null) {
 			$at = time();
@@ -183,7 +183,7 @@ class ResqueScheduler
 	 * @param DateTime|int $timestamp Instance of DateTime or UNIX timestamp.
 	 * @return array Matching job at timestamp.
 	 */
-	public function nextItemForTimestamp($timestamp)
+	public static function nextItemForTimestamp($timestamp)
 	{
 		$timestamp = self::getTimestamp($timestamp);
 		$key = 'delayed:' . $timestamp;
