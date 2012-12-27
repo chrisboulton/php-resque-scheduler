@@ -194,7 +194,7 @@ class ResqueScheduler
 		}
 		
 		if ((int)$timestamp != $timestamp) {
-			throw new ResqueScheduler_InvalidTimestampExeption(
+			throw new ResqueScheduler_InvalidTimestampException(
 				'The supplied timestamp value could not be converted to an integer.'
 			);
 		}
