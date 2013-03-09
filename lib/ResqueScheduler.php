@@ -9,6 +9,8 @@
 */
 class ResqueScheduler
 {
+	const VERSION = "0.1";
+	
 	/**
 	 * Enqueue a job in a given number of seconds from now.
 	 *
