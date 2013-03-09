@@ -17,6 +17,39 @@ Because the PHP port is almost a direct API copy of the Ruby version, it is also
 compatible with the web interface of the Ruby version, which provides the
 ability to view and manage delayed jobs.
 
+## Requirements ##
+
+* PHP 5.3+
+* Redis 2.2+
+* PHP-Resque 1.2+
+* Optional but Recommended: Composer
+
+## Getting Started ##
+
+The easiest way to work with php-resque-scheduler is when it's installed as a
+Composer package inside your project. Composer isn't strictly
+required, but makes life a lot easier.
+
+If you're not familiar with Composer, please see <http://getcomposer.org/>.
+
+1. Add php-resque-scheduler to your application's composer.json.
+
+        {
+            ...
+            "require": {
+				"chrisboulton/php-resque-scheduler": "dev-master",
+                "php": ">=5.3.0"
+            },
+            ...
+        }
+
+2. Run `composer install`.
+
+3. If you haven't already, add the Composer autoload to your project's
+   initialization file. (example)
+
+        require 'vendor/autoload.php';
+
 ## Delayed Jobs
 
 To quote the documentation for the Ruby resque-scheduler:
