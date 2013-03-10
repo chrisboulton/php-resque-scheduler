@@ -101,3 +101,8 @@ of the job, the class name of the job, and the job's arguments.
 ## Contributors ##
 
 * chrisboulton
+* rayward
+* atorres757
+* tonypiper
+* biinari
+* cballou
