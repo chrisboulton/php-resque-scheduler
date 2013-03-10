@@ -17,7 +17,6 @@
 		{ "type": "git", "url": "https://github.com/chrisboulton/php-resque" }
 	],
 	"require": {
-		"chrisboulton/php-resque": "dev-master"
-	},
-	"minimum-stability": "dev"
+		"chrisboulton/php-resque": "< 1.3"
+	}
 }
