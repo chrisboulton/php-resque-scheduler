@@ -15,8 +15,12 @@ require_once dirname(__FILE__) . '/lib/ResqueScheduler.php';
 require_once dirname(__FILE__) . '/lib/ResqueScheduler/Worker.php';
 
 $REDIS_BACKEND = getenv('REDIS_BACKEND');
+$REDIS_BACKEND_DB = getenv('REDIS_BACKEND_DB');
 if(!empty($REDIS_BACKEND)) {
-	Resque::setBackend($REDIS_BACKEND);
+	if (empty($REDIS_BACKEND_DB)) 
+		Resque::setBackend($REDIS_BACKEND);
+	else
+		Resque::setBackend($REDIS_BACKEND, $REDIS_BACKEND_DB);
 }
 
 // Set log level for resque-scheduler
@@ -46,6 +50,12 @@ if($APP_INCLUDE) {
 	}
 
 	require_once $APP_INCLUDE;
+}
+
+$PREFIX = getenv('PREFIX');
+if(!empty($PREFIX)) {
+    fwrite(STDOUT, '*** Prefix set to '.$PREFIX."\n");
+    Resque_Redis::prefix($PREFIX);
 }
 
 $worker = new ResqueScheduler_Worker();
