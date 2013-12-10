@@ -34,21 +34,25 @@ If you're not familiar with Composer, please see <http://getcomposer.org/>.
 
 1. Add php-resque-scheduler to your application's composer.json.
 
-        {
-            ...
-            "require": {
-				"chrisboulton/php-resque-scheduler": "dev-master",
-                "php": ">=5.3.0"
-            },
-            ...
-        }
+    ```json
+    {
+        ...
+        "require": {
+			"chrisboulton/php-resque-scheduler": "dev-master",
+            "php": ">=5.3.0"
+        },
+        ...
+    }
+    ```
 
 2. Run `composer install`.
 
 3. If you haven't already, add the Composer autoload to your project's
    initialization file. (example)
 
-        require 'vendor/autoload.php';
+    ```php
+    require 'vendor/autoload.php';
+    ```
 
 ## Delayed Jobs
 
@@ -57,9 +61,11 @@ To quote the documentation for the Ruby resque-scheduler:
 > Delayed jobs are one-off jobs that you want to be put into a queue at some
 point in the future. The classic example is sending an email:
 
-    $in = 3600;
-    $args = array('id' => $user->id);
-    ResqueScheduler::enqueueIn($in, 'email', 'SendFollowUpEmail', $args);
+```php
+$in = 3600;
+$args = array('id' => $user->id);
+ResqueScheduler::enqueueIn($in, 'email', 'SendFollowUpEmail', $args);
+```
 
 The above will store the job for 1 hour in the delayed queue, and then pull the
 job off and submit it to the `email` queue in Resque for processing as soon as
@@ -69,13 +75,15 @@ Instead of passing a relative time in seconds, you can also supply a timestamp
 as either a DateTime object or integer containing a UNIX timestamp to the
 `enqueueAt` method:
 
-    $time = 1332067214;
-    ResqueScheduler::enqueueAt($time, 'email', 'SendFollowUpEmail', $args);
+```php
+$time = 1332067214;
+ResqueScheduler::enqueueAt($time, 'email', 'SendFollowUpEmail', $args);
 
-	$datetime = new DateTime('2012-03-18 13:21:49');
-	ResqueScheduler::enqueueAt(datetime, 'email', 'SendFollowUpEmail', $args);
+$datetime = new DateTime('2012-03-18 13:21:49');
+ResqueScheduler::enqueueAt(datetime, 'email', 'SendFollowUpEmail', $args);
+```
 
-NOTE: resque-scheduler does not guarantee a job will fire at the time supplied.
+**Note:** resque-scheduler does not guarantee a job will fire at the time supplied.
 At the time supplied, resque-scheduler will take the job out of the delayed
 queue and push it to the appropriate queue in Resque. Your next available Resque
 worker will pick the job up. To keep processing as quick as possible, keep your
@@ -88,9 +96,15 @@ worker is responsible for pulling items off the schedule/delayed queue and addin
 them to the queue for resque. This means that for delayed or scheduled jobs to be
 executed, the worker needs to be running.
 
-A basic "up-and-running" resque-scheduler file that sets up a running worker 
-environment is included in the bin/ directory. It accepts many of the same 
-environment variables as php-resque:
+A basic "up-and-running" resque-scheduler file that sets up a running worker
+environment is included in the bin/ directory.
+
+To start a worker, it's very similar to the Ruby version:
+```sh
+$ LOGGING=1 php bin/resque-scheduler
+```
+
+It accepts many of the same environment variables as php-resque:
 
 * `REDIS_BACKEND` - Redis server to connect to
 * `LOGGING` - Enable logging to STDOUT
@@ -130,3 +144,6 @@ of the job, the class name of the job, and the job's arguments.
 * tonypiper
 * biinari
 * cballou
+* danhunsaker
+* evertharmeling
+* stevelacey
