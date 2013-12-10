@@ -138,12 +138,12 @@ of the job, the class name of the job, and the job's arguments.
 
 ## Contributors ##
 
-* chrisboulton
-* rayward
-* atorres757
-* tonypiper
-* biinari
-* cballou
-* danhunsaker
-* evertharmeling
-* stevelacey
+* [chrisboulton](//github.com/chrisboulton)
+* [rayward](//github.com/rayward)
+* [atorres757](//github.com/atorres757)
+* [tonypiper](//github.com/tonypiper)
+* [biinari](//github.com/biinari)
+* [cballou](//github.com/cballou)
+* [danhunsaker](//github.com/danhunsaker)
+* [evertharmeling](//github.com/evertharmeling)
+* [stevelacey](//github.com/stevelacey)
