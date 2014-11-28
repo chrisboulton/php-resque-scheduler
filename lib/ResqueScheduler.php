@@ -285,7 +285,7 @@ class ResqueScheduler
         $key = self::DELAYED_PREFIX . self::getTimestamp($timestamp);
         $item = json_encode(self::jobToHash($queue, $class, $args));
         $redis = Resque::redis();
-        $entries = $redis->lrange($key, 0, $redis->llen($key));
+        $entries = $redis->lrange($key, 0, -1);
         foreach ($entries as $entry) {
             if ($entry === $item) {
                 return true;
