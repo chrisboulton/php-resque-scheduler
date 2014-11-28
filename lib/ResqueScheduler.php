@@ -293,4 +293,29 @@ class ResqueScheduler
 
         return false;
     }
+
+    /**
+     * Find the timestamps where the job is in delayed schedule.
+     *
+     * @param string $queue
+     * @param string $class
+     * @param array $args
+     * @return array
+     */
+    public static function getDelayedJobTimestamps($queue, $class, $args)
+    {
+        $timestamps = array();
+        $redis = Resque::redis();
+
+        foreach($redis->keys('delayed:*') as $key)
+        {
+            $key = $redis->removePrefix($key);
+            $timestamp = substr($key, strlen('delayed:'));
+            if (self::isDelayedAtTimestamp($timestamp, $queue, $class, $args)) {
+                $timestamps[] = $timestamp;
+            }
+        }
+
+        return $timestamps;
+    }
 }
