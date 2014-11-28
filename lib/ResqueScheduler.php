@@ -280,7 +280,7 @@ class ResqueScheduler
      * @param array $args
      * @return bool
      */
-    public static function isDelayedAtTimestamp($timestamp, $queue, $class, $args)
+    public static function isDelayedAtTimestamp($timestamp, $queue, $class, array $args = array())
     {
         $key = self::DELAYED_PREFIX . self::getTimestamp($timestamp);
         $item = json_encode(self::jobToHash($queue, $class, $args));
@@ -304,7 +304,7 @@ class ResqueScheduler
      * @param array $args
      * @return array
      */
-    public static function getDelayedJobTimestamps($queue, $class, $args)
+    public static function getDelayedJobTimestamps($queue, $class, array $args = array())
     {
         $timestamps = array();
         $redis = Resque::redis();
