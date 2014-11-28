@@ -268,4 +268,29 @@ class ResqueScheduler
 		
 		return true;
 	}
+
+    /**
+     * Check if the job is enqueue at given timestamp.
+     *
+     * @param DateTime|int $timestamp
+     * @param string $queue
+     * @param string $class
+     * @param array $args
+     * @return bool
+     */
+    public static function isDelayedAtTimestamp($timestamp, $queue, $class, $args)
+    {
+        $key = 'delayed:' . self::getTimestamp($timestamp);
+        $item = json_encode(self::jobToHash($queue, $class, $args));
+        $redis = Resque::redis();
+        $entries = $redis->lrange($key, 0, $redis->llen($key));
+        foreach ($entries as $entry) {
+            if ($entry === $item) {
+                return true;
+            }
+        }
+
+
+        return false;
+    }
 }
