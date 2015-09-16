@@ -46,7 +46,7 @@ as either a DateTime object or integer containing a UNIX timestamp to the
     ResqueScheduler::enqueueAt($time, 'email', 'SendFollowUpEmail', $args);
 
 	$datetime = new DateTime('2012-03-18 13:21:49');
-	ResqueScheduler::enqueueAt(datetime, 'email', 'SendFollowUpEmail', $args);
+	ResqueScheduler::enqueueAt($datetime, 'email', 'SendFollowUpEmail', $args);
 
 NOTE: resque-scheduler does not guarantee a job will fire at the time supplied.
 At the time supplied, resque-scheduler will take the job out of the delayed
