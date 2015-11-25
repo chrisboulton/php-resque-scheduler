@@ -225,7 +225,7 @@ class ResqueScheduler
 			$at = self::getTimestamp($at);
 		}
 	
-		$items = Resque::redis()->zrangebyscore('delayed_queue_schedule', '-inf', $at, array('limit' => array(0, 1)));
+		$items = Resque::redis()->zrangebyscore('delayed_queue_schedule', '-inf', $at, 'limit' ,0, 1);
 		if (!empty($items)) {
 			return $items[0];
 		}
