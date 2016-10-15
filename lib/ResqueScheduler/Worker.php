@@ -55,7 +55,7 @@ class ResqueScheduler_Worker
 	 */
 	public function handleDelayedItems($timestamp = null)
 	{
-		while (($timestamp = ResqueScheduler::nextDelayedTimestamp($timestamp)) !== false) {
+		while (($timestamp = ResqueScheduler::nextDelayedTimestamp()) !== false) {
 			$this->updateProcLine('Processing Delayed Items');
 			$this->enqueueDelayedItemsForTimestamp($timestamp);
 		}
