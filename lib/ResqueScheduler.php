@@ -10,8 +10,10 @@
 class ResqueScheduler
 {
 	const VERSION = "0.1";
-	
-	/**
+    const DELAYED_PREFIX = 'delayed:';
+    const DELAYED_QUEUE_SCHEDULE = 'delayed_queue_schedule';
+
+    /**
 	 * Enqueue a job in a given number of seconds from now.
 	 *
 	 * Identical to Resque::enqueue, however the first argument is the number
@@ -64,9 +66,9 @@ class ResqueScheduler
 	{
 		$timestamp = self::getTimestamp($timestamp);
 		$redis = Resque::redis();
-		$redis->rpush('delayed:' . $timestamp, json_encode($item));
+		$redis->rpush(self::DELAYED_PREFIX . $timestamp, json_encode($item));
 
-		$redis->zadd('delayed_queue_schedule', $timestamp, $timestamp);
+		$redis->zadd(self::DELAYED_QUEUE_SCHEDULE, $timestamp, $timestamp);
 	}
 
 	/**
@@ -76,7 +78,7 @@ class ResqueScheduler
 	 */
 	public static function getDelayedQueueScheduleSize()
 	{
-		return (int)Resque::redis()->zcard('delayed_queue_schedule');
+		return (int)Resque::redis()->zcard(self::DELAYED_QUEUE_SCHEDULE);
 	}
 
 	/**
@@ -88,7 +90,7 @@ class ResqueScheduler
 	public static function getDelayedTimestampSize($timestamp)
 	{
 		$timestamp = self::toTimestamp($timestamp);
-		return Resque::redis()->llen('delayed:' . $timestamp, $timestamp);
+		return Resque::redis()->llen(self::DELAYED_PREFIX . $timestamp, $timestamp);
 	}
 
     /**
@@ -112,7 +114,7 @@ class ResqueScheduler
        $item=json_encode(self::jobToHash($queue, $class, $args));
        $redis=Resque::redis();
 
-       foreach($redis->keys('delayed:*') as $key)
+       foreach($redis->keys(self::DELAYED_PREFIX . '*') as $key)
        {
            $key=$redis->removePrefix($key);
            $destroyed+=$redis->lrem($key,0,$item);
@@ -136,7 +138,7 @@ class ResqueScheduler
      */
     public static function removeDelayedJobFromTimestamp($timestamp, $queue, $class, $args)
     {
-        $key = 'delayed:' . self::getTimestamp($timestamp);
+        $key = self::DELAYED_PREFIX . self::getTimestamp($timestamp);
         $item = json_encode(self::jobToHash($queue, $class, $args));
         $redis = Resque::redis();
         $count = $redis->lrem($key, 0, $item);
@@ -178,7 +180,7 @@ class ResqueScheduler
 
 		if ($redis->llen($key) == 0) {
 			$redis->del($key);
-			$redis->zrem('delayed_queue_schedule', $timestamp);
+			$redis->zrem(self::DELAYED_QUEUE_SCHEDULE, $timestamp);
 		}
 	}
 
@@ -225,7 +227,7 @@ class ResqueScheduler
 			$at = self::getTimestamp($at);
 		}
 	
-		$items = Resque::redis()->zrangebyscore('delayed_queue_schedule', '-inf', $at, array('limit' => array(0, 1)));
+		$items = Resque::redis()->zrangebyscore(self::DELAYED_QUEUE_SCHEDULE, '-inf', $at, array('limit' => array(0, 1)));
 		if (!empty($items)) {
 			return $items[0];
 		}
@@ -242,7 +244,7 @@ class ResqueScheduler
 	public static function nextItemForTimestamp($timestamp)
 	{
 		$timestamp = self::getTimestamp($timestamp);
-		$key = 'delayed:' . $timestamp;
+		$key = self::DELAYED_PREFIX . $timestamp;
 		
 		$item = json_decode(Resque::redis()->lpop($key), true);
 		
@@ -268,4 +270,54 @@ class ResqueScheduler
 		
 		return true;
 	}
+
+    /**
+     * Check if the job is enqueue at given timestamp.
+     *
+     * @param DateTime|int $timestamp
+     * @param string $queue
+     * @param string $class
+     * @param array $args
+     * @return bool
+     */
+    public static function isDelayedAtTimestamp($timestamp, $queue, $class, array $args = array())
+    {
+        $key = self::DELAYED_PREFIX . self::getTimestamp($timestamp);
+        $item = json_encode(self::jobToHash($queue, $class, $args));
+        $redis = Resque::redis();
+        $entries = $redis->lrange($key, 0, -1);
+        foreach ($entries as $entry) {
+            if ($entry === $item) {
+                return true;
+            }
+        }
+
+
+        return false;
+    }
+
+    /**
+     * Find the timestamps where the job is in delayed schedule.
+     *
+     * @param string $queue
+     * @param string $class
+     * @param array $args
+     * @return array
+     */
+    public static function getDelayedJobTimestamps($queue, $class, array $args = array())
+    {
+        $timestamps = array();
+        $redis = Resque::redis();
+
+        foreach($redis->keys(self::DELAYED_PREFIX . '*') as $key)
+        {
+            $key = $redis->removePrefix($key);
+            $timestamp = substr($key, strlen(self::DELAYED_PREFIX));
+            if (self::isDelayedAtTimestamp($timestamp, $queue, $class, $args)) {
+                $timestamps[] = $timestamp;
+            }
+        }
+
+        return $timestamps;
+    }
 }
