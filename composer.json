@@ -1,27 +1,30 @@
 {
-	"name": "spiritdead/php-resque-scheduler",
-	"type": "library",
-	"description": "php-resque-scheduler is a PHP port of resque-scheduler, which adds support for scheduling items in the future to Resque.",
-	"license": "MIT",
-	"authors": [
-		{
-			"name": "Chris Boulton",
-			"email": "chris@bgigcommerce.com"
-		},
-		{
-			"name": "Carlos Rodriguez",
-			"email": "mundofreakuc@gmail.com"
-		}
-	],
-	"autoload": {
-		"psr-0": {
-			"ResqueScheduler": "lib/"
-		}
-	},
-	"repositories": [
-		{ "type": "git", "url": "https://github.com/spiritdead/php-resque" }
-	],
-	"require": {
-		"spiritdead/php-resque": "dev-master"
-	}
+  "name": "spiritdead/php-resque-scheduler",
+  "type": "library",
+  "description": "php-resque-scheduler is a PHP port of resque-scheduler, which adds support for scheduling items in the future to Resque.",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Chris Boulton",
+      "email": "chris@bgigcommerce.com"
+    },
+    {
+      "name": "Carlos Rodriguez",
+      "email": "mundofreakuc@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-0": {
+      "ResqueScheduler": "lib/"
+    }
+  },
+  "repositories": [
+    {
+      "type": "git",
+      "url": "https://github.com/spiritdead/php-resque"
+    }
+  ],
+  "require": {
+    "spiritdead/php-resque": "dev-master"
+  }
 }
