@@ -35,6 +35,11 @@ class ResqueScheduler_Worker
     private $paused = false;
 
     /**
+     * @var boolean for determinate if this worker is working
+     */
+    private $working = false;
+
+    /**
      * @var string String identifying this worker.
      */
     private $id;
@@ -54,7 +59,7 @@ class ResqueScheduler_Worker
     {
         $this->hostname = php_uname('n');
 
-        $this->id = $this->hostname . ':' . getmypid();
+        $this->id = $this->hostname . ':' . getmypid() . ':schedule';
     }
 
     /**
@@ -154,7 +159,7 @@ class ResqueScheduler_Worker
      */
     public function pruneDeadWorkers()
     {
-        $workerPids = $this->workerPids();
+        $workerPids = self::workerPids();
         $workers = self::all();
         /* @var self $worker */
         foreach ($workers as $worker) {
@@ -174,7 +179,7 @@ class ResqueScheduler_Worker
      *
      * @return array Array of Resque worker process IDs.
      */
-    public function workerPids()
+    public static function workerPids()
     {
         $pids = [];
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
@@ -279,6 +284,7 @@ class ResqueScheduler_Worker
      */
     public function workingOn($item)
     {
+        $this->working = true;
         $data = json_encode([
             'queue' => 'schedule',
             'run_at' => strftime('%a %b %d %H:%M:%S %Z %Y'),
@@ -294,8 +300,16 @@ class ResqueScheduler_Worker
     public function doneWorking()
     {
         $this->currentJob = null;
+        $this->working = false;
         Resque_Stat::incr('processed:' . (string)$this);
         Resque::redis()->del('worker-scheduler:' . (string)$this);
+    }
+
+    /**
+     * @return boolean get for the private attribute
+     */
+    public function getWorking(){
+        return $this->working;
     }
 
     /**
