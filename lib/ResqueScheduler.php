@@ -108,17 +108,18 @@ class ResqueScheduler
      */
     public static function removeDelayed($queue, $class, $args)
     {
-       $destroyed=0;
-       $item=json_encode(self::jobToHash($queue, $class, $args));
-       $redis=Resque::redis();
+        $destroyed=0;
+        $item=json_encode(self::jobToHash($queue, $class, $args));
+        $redis=Resque::redis();
 
-       foreach($redis->keys('delayed:*') as $key)
-       {
+        foreach($redis->keys('delayed:*') as $key) {
            $key=$redis->removePrefix($key);
            $destroyed+=$redis->lrem($key,0,$item);
-       }
+           $timestamp = (int) substr($key, 8);
+           self::cleanupTimestamp($key, $timestamp);
+        }
 
-       return $destroyed;
+        return $destroyed;
     }
 
     /**
