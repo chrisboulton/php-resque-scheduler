@@ -1,12 +1,16 @@
 {
-	"name": "chrisboulton/php-resque-scheduler",
+	"name": "innogames/php-resque-scheduler",
 	"type": "library",
-	"description": "php-resque-scheduler is a PHP port of resque-scheduler, which adds support for scheduling items in the future to Resque.",
+	"description": "Namespaced port of chrisboulton/php-resque-scheduler which adds support for scheduling items in the future to Resque, works with innogames/php-resque",
 	"license": "MIT",
 	"authors": [
 		{
 			"name": "Chris Boulton",
 			"email": "chris@bgigcommerce.com"
+		},
+		{
+			"name": "InnoGames (Grepolis Development Team)",
+			"email": "it@innogames.com"
 		}
 	],
 	"autoload": {
@@ -15,9 +19,9 @@
 		}
 	},
 	"repositories": [
-		{ "type": "git", "url": "https://github.com/chrisboulton/php-resque" }
+		{ "type": "git", "url": "https://github.com/innogames/php-resque" }
 	],
 	"require": {
-		"chrisboulton/php-resque": "dev-master"
+		"innogames/php-resque": "2.5.*"
 	}
 }

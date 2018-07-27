@@ -1,65 +1,34 @@
 <?php
 
-// Look for an environment variable with 
-$RESQUE_PHP = getenv('RESQUE_PHP');
-if (!empty($RESQUE_PHP)) {
-	require_once $RESQUE_PHP;
-}
-// Otherwise, if we have no Resque then assume it is in the include path
-else if (!class_exists('Resque')) {
-	require_once 'Resque/Resque.php';
+if (!defined('ROOT')) {
+	define('ROOT', realpath(dirname(__FILE__)) . '/');
 }
 
-// Load resque-scheduler
-require_once dirname(__FILE__) . '/lib/ResqueScheduler.php';
-require_once dirname(__FILE__) . '/lib/ResqueScheduler/Worker.php';
+require_once ROOT . 'lib/ResqueScheduler.php';
+require_once ROOT . 'lib/Worker.php';
+require_once ROOT . 'lib/Exceptions/InvalidTimestampException.php';
 
-$REDIS_BACKEND = getenv('REDIS_BACKEND');
-$REDIS_BACKEND_DB = getenv('REDIS_BACKEND_DB');
-if(!empty($REDIS_BACKEND)) {
-	if (empty($REDIS_BACKEND_DB)) 
-		Resque::setBackend($REDIS_BACKEND);
-	else
-		Resque::setBackend($REDIS_BACKEND, $REDIS_BACKEND_DB);
-}
+$resque = null; //instantiate your resque including the client here
 
 // Set log level for resque-scheduler
 $logLevel = 0;
 $LOGGING = getenv('LOGGING');
 $VERBOSE = getenv('VERBOSE');
-$VVERBOSE = getenv('VVERBOSE');
-if(!empty($LOGGING) || !empty($VERBOSE)) {
-	$logLevel = ResqueScheduler_Worker::LOG_NORMAL;
+if(!empty($LOGGING)) {
+	$logLevel = ResqueScheduler\Worker::LOG_NORMAL;
 }
-else if(!empty($VVERBOSE)) {
-	$logLevel = ResqueScheduler_Worker::LOG_VERBOSE;
+else if(!empty($VERBOSE)) {
+	$logLevel = ResqueScheduler\Worker::LOG_VERBOSE;
 }
 
 // Check for jobs every $interval seconds
-$interval = 5;
+$interval = 1;
 $INTERVAL = getenv('INTERVAL');
 if(!empty($INTERVAL)) {
 	$interval = $INTERVAL;
 }
 
-// Load the user's application if one exists
-$APP_INCLUDE = getenv('APP_INCLUDE');
-if($APP_INCLUDE) {
-	if(!file_exists($APP_INCLUDE)) {
-		die('APP_INCLUDE ('.$APP_INCLUDE.") does not exist.\n");
-	}
-
-	require_once $APP_INCLUDE;
-}
-
-$PREFIX = getenv('PREFIX');
-if(!empty($PREFIX)) {
-    fwrite(STDOUT, '*** Prefix set to '.$PREFIX."\n");
-    Resque_Redis::prefix($PREFIX);
-}
-
-$worker = new ResqueScheduler_Worker();
-$worker->logLevel = $logLevel;
+$worker = new ResqueScheduler\Worker($logLevel, $interval, $resque);
 
 $PIDFILE = getenv('PIDFILE');
 if ($PIDFILE) {
@@ -68,4 +37,4 @@ if ($PIDFILE) {
 }
 
 fwrite(STDOUT, "*** Starting scheduler worker\n");
-$worker->work($interval);
+$worker->work();

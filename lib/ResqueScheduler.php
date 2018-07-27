@@ -1,18 +1,42 @@
 <?php
 
 namespace ResqueScheduler;
+
+use DateTime;
+use Resque\ResqueException;
+use Resque\Client\ClientInterface;
+use ResqueScheduler\Exceptions\InvalidTimestampException;
+
 /**
 * ResqueScheduler core class to handle scheduling of jobs in the future.
+ * Suggested clients: Predis, Credis_Client
 *
-* @package		ResqueScheduler
-* @author		Chris Boulton <chris@bigcommerce.com>
-* @copyright	(c) 2012 Chris Boulton
 * @license		http://www.opensource.org/licenses/mit-license.php
 */
 class ResqueScheduler
 {
 	const VERSION = "0.1";
-	
+
+	/**
+	 * @var ClientInterface
+	 */
+	private $client;
+
+	/**
+	 * @var string
+	 */
+	private $prefix
+
+	/**
+	 * ResqueScheduler constructor.
+	 * @param ClientInterface $client
+	 */
+	public function __construct($client)
+	{
+		$this->client = $client;
+	}
+
+
 	/**
 	 * Enqueue a job in a given number of seconds from now.
 	 *
@@ -24,9 +48,9 @@ class ResqueScheduler
 	 * @param string $class The name of the class that contains the code to execute the job.
 	 * @param array $args Any optional arguments that should be passed when the job is executed.
 	 */
-	public static function enqueueIn($in, $queue, $class, array $args = array())
+	public function enqueueIn($in, $queue, $class, array $args = [])
 	{
-		self::enqueueAt(time() + $in, $queue, $class, $args);
+		$this->enqueueAt(time() + $in, $queue, $class, $args);
 	}
 
 	/**
@@ -41,19 +65,12 @@ class ResqueScheduler
 	 * @param string $class The name of the class that contains the code to execute the job.
 	 * @param array $args Any optional arguments that should be passed when the job is executed.
 	 */
-	public static function enqueueAt($at, $queue, $class, $args = array())
+	public function enqueueAt($at, $queue, $class, $args = [])
 	{
-		self::validateJob($class, $queue);
+		$this->validateJob($class, $queue);
 
-		$job = self::jobToHash($queue, $class, $args);
-		self::delayedPush($at, $job);
-		
-		Resque_Event::trigger('afterSchedule', array(
-			'at'    => $at,
-			'queue' => $queue,
-			'class' => $class,
-			'args'  => $args,
-		));
+		$job = $this->jobToHash($queue, $class, $args);
+		$this->delayedPush($at, $job);
 	}
 
 	/**
@@ -62,13 +79,12 @@ class ResqueScheduler
 	 * @param DateTime|int $timestamp Timestamp job is scheduled to be run at.
 	 * @param array $item Hash of item to be pushed to schedule.
 	 */
-	public static function delayedPush($timestamp, $item)
+	public function delayedPush($timestamp, $item)
 	{
-		$timestamp = self::getTimestamp($timestamp);
-		$redis = Resque::redis();
-		$redis->rpush('delayed:' . $timestamp, json_encode($item));
+		$timestamp = $this->getTimestamp($timestamp);
+		$this->client->rpush('delayed:' . $timestamp, json_encode($item));
 
-		$redis->zadd('delayed_queue_schedule', $timestamp, $timestamp);
+		$this->client->zadd('delayed_queue_schedule', $timestamp, $timestamp);
 	}
 
 	/**
@@ -76,9 +92,9 @@ class ResqueScheduler
 	 *
 	 * @return int Number of scheduled jobs.
 	 */
-	public static function getDelayedQueueScheduleSize()
+	public function getDelayedQueueScheduleSize()
 	{
-		return (int)Resque::redis()->zcard('delayed_queue_schedule');
+		return (int) $this->client->zcard('delayed_queue_schedule');
 	}
 
 	/**
@@ -87,10 +103,10 @@ class ResqueScheduler
 	 * @param DateTime|int $timestamp Timestamp
 	 * @return int Number of scheduled jobs.
 	 */
-	public static function getDelayedTimestampSize($timestamp)
+	public function getDelayedTimestampSize($timestamp)
 	{
-		$timestamp = self::toTimestamp($timestamp);
-		return Resque::redis()->llen('delayed:' . $timestamp, $timestamp);
+		$timestamp = $this->toTimestamp($timestamp);
+		return $this->client->llen('delayed:' . $timestamp, $timestamp);
 	}
 
     /**
@@ -108,16 +124,13 @@ class ResqueScheduler
      * @param $args
      * @return int number of jobs that were removed
      */
-    public static function removeDelayed($queue, $class, $args)
+    public function removeDelayed($queue, $class, $args)
     {
-       $destroyed=0;
-       $item=json_encode(self::jobToHash($queue, $class, $args));
-       $redis=Resque::redis();
+       $destroyed = 0;
+       $item = json_encode($this->jobToHash($queue, $class, $args));
 
-       foreach($redis->keys('delayed:*') as $key)
-       {
-           $key=$redis->removePrefix($key);
-           $destroyed+=$redis->lrem($key,0,$item);
+       foreach($this->client->keys('delayed:*') as $key) {
+           $destroyed += $this->client->lrem($key,0,$item);
        }
 
        return $destroyed;
@@ -136,13 +149,12 @@ class ResqueScheduler
      * @param $args
      * @return mixed
      */
-    public static function removeDelayedJobFromTimestamp($timestamp, $queue, $class, $args)
+    public function removeDelayedJobFromTimestamp($timestamp, $queue, $class, $args)
     {
-        $key = 'delayed:' . self::getTimestamp($timestamp);
-        $item = json_encode(self::jobToHash($queue, $class, $args));
-        $redis = Resque::redis();
-        $count = $redis->lrem($key, 0, $item);
-        self::cleanupTimestamp($key, $timestamp);
+        $key = 'delayed:' . $this->getTimestamp($timestamp);
+        $item = json_encode($this->jobToHash($queue, $class, $args));
+        $count = $this->client->lrem($key, 0, $item);
+        $this->cleanupTimestamp($key, $timestamp);
 
         return $count;
     }
@@ -155,13 +167,13 @@ class ResqueScheduler
 	 * @param array $args Array of job arguments.
 	 */
 
-	private static function jobToHash($queue, $class, $args)
+	private function jobToHash($queue, $class, $args)
 	{
-		return array(
+		return [
 			'class' => $class,
-			'args'  => array($args),
+			'args'  => [$args],
 			'queue' => $queue,
-		);
+		];
 	}
 
 	/**
@@ -173,14 +185,13 @@ class ResqueScheduler
 	 * @param string $key Key to count number of items at.
 	 * @param int $timestamp Matching timestamp for $key.
 	 */
-	private static function cleanupTimestamp($key, $timestamp)
+	private function cleanupTimestamp($key, $timestamp)
 	{
-		$timestamp = self::getTimestamp($timestamp);
-		$redis = Resque::redis();
+		$timestamp = $this->getTimestamp($timestamp);
 
-		if ($redis->llen($key) == 0) {
-			$redis->del($key);
-			$redis->zrem('delayed_queue_schedule', $timestamp);
+		if ($this->client->llen($key) == 0) {
+			$this->client->del($key);
+			$this->client->zrem('delayed_queue_schedule', $timestamp);
 		}
 	}
 
@@ -189,16 +200,16 @@ class ResqueScheduler
 	 *
 	 * @param DateTime|int $timestamp Instance of DateTime or UNIX timestamp.
 	 * @return int Timestamp
-	 * @throws ResqueScheduler_InvalidTimestampException
+	 * @throws InvalidTimestampException
 	 */
-	private static function getTimestamp($timestamp)
+	private function getTimestamp($timestamp)
 	{
 		if ($timestamp instanceof DateTime) {
 			$timestamp = $timestamp->getTimestamp();
 		}
 		
 		if ((int)$timestamp != $timestamp) {
-			throw new ResqueScheduler_InvalidTimestampException(
+			throw new InvalidTimestampException(
 				'The supplied timestamp value could not be converted to an integer.'
 			);
 		}
@@ -218,7 +229,7 @@ class ResqueScheduler
 	 *                                Defaults to now.
 	 * @return int|false UNIX timestamp, or false if nothing to run.
 	 */
-	public static function nextDelayedTimestamp($at = null)
+	public function nextDelayedTimestamp($at = null)
 	{
 		if ($at === null) {
 			$at = time();
@@ -227,7 +238,7 @@ class ResqueScheduler
 			$at = self::getTimestamp($at);
 		}
 	
-		$items = Resque::redis()->zrangebyscore('delayed_queue_schedule', '-inf', $at, array('limit' => array(0, 1)));
+		$items = $this->client->zrangebyscore('delayed_queue_schedule', '-inf', $at, ['limit' => [0, 1]]);
 		if (!empty($items)) {
 			return $items[0];
 		}
@@ -241,14 +252,14 @@ class ResqueScheduler
 	 * @param DateTime|int $timestamp Instance of DateTime or UNIX timestamp.
 	 * @return array Matching job at timestamp.
 	 */
-	public static function nextItemForTimestamp($timestamp)
+	public function nextItemForTimestamp($timestamp)
 	{
-		$timestamp = self::getTimestamp($timestamp);
+		$timestamp = $this->getTimestamp($timestamp);
 		$key = 'delayed:' . $timestamp;
 		
-		$item = json_decode(Resque::redis()->lpop($key), true);
+		$item = json_decode($this->client->lpop($key), true);
 		
-		self::cleanupTimestamp($key, $timestamp);
+		$this->cleanupTimestamp($key, $timestamp);
 		return $item;
 	}
 
@@ -257,17 +268,30 @@ class ResqueScheduler
 	 *
 	 * @param string $class Name of job class.
 	 * @param string $queue Name of queue.
-	 * @throws Resque_Exception
+	 * @throws ResqueException
 	 */
-	private static function validateJob($class, $queue)
+	private function validateJob($class, $queue)
 	{
 		if (empty($class)) {
-			throw new Resque_Exception('Jobs must be given a class.');
+			throw new ResqueException('Jobs must be given a class.');
 		}
 		else if (empty($queue)) {
-			throw new Resque_Exception('Jobs must be put in a queue.');
+			throw new ResqueException('Jobs must be put in a queue.');
 		}
 		
 		return true;
+	}
+
+	/**
+	 * @param DateTime|int $timestamp
+	 * @return int
+	 */
+	private function toTimestamp($timestamp)
+	{
+		if ($timestamp instanceof DateTime) {
+			return $timestamp->getTimestamp();
+		} else {
+			return $timestamp;
+		}
 	}
 }

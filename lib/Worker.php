@@ -1,4 +1,9 @@
 <?php
+
+namespace ResqueScheduler;
+
+use DateTime;
+
 /**
  * ResqueScheduler worker to handle scheduling of delayed tasks.
  *
@@ -7,7 +12,7 @@
  * @copyright	(c) 2012 Chris Boulton
  * @license		http://www.opensource.org/licenses/mit-license.php
  */
-class ResqueScheduler_Worker
+class Worker
 {
 	const LOG_NONE = 0;
 	const LOG_NORMAL = 1;
@@ -16,27 +21,49 @@ class ResqueScheduler_Worker
 	/**
 	 * @var int Current log level of this worker.
 	 */
-	public $logLevel = 0;
+	private $logLevel = 0;
 	
 	/**
 	 * @var int Interval to sleep for between checking schedules.
 	 */
-	protected $interval = 5;
-	
+	private $interval = 5;
+
+    /**
+     * @var ResqueScheduler
+     */
+    private $scheduler;
+
 	/**
+	 * @var Resque
+	 */
+	private $resque;
+
+    /**
+     * Worker constructor.
+     * @param int $logLevel
+     * @param int $interval
+     * @param Resque $resque
+     */
+    public function __construct($logLevel, $interval, Resque $resque)
+    {
+        $this->logLevel = $logLevel;
+        $this->interval = $interval;
+        $this->resque = $resque;
+        $this->scheduler = new ResqueScheduler($resque->getClient());;
+    }
+
+
+    /**
 	* The primary loop for a worker.
 	*
 	* Every $interval (seconds), the scheduled queue will be checked for jobs
 	* that should be pushed to Resque.
 	*
+    * @param Resque $resque The configured resque instance to use
 	* @param int $interval How often to check schedules.
 	*/
-	public function work($interval = null)
+	public function work()
 	{
-		if ($interval !== null) {
-			$this->interval = $interval;
-		}
-
 		$this->updateProcLine('Starting');
 		
 		while (true) {
@@ -55,7 +82,7 @@ class ResqueScheduler_Worker
 	 */
 	public function handleDelayedItems($timestamp = null)
 	{
-		while (($oldestJobTimestamp = ResqueScheduler::nextDelayedTimestamp($timestamp)) !== false) {
+		while (($oldestJobTimestamp = $this->scheduler->nextDelayedTimestamp($timestamp)) !== false) {
 			$this->updateProcLine('Processing Delayed Items');
 			$this->enqueueDelayedItemsForTimestamp($oldestJobTimestamp);
 		}
@@ -71,19 +98,12 @@ class ResqueScheduler_Worker
 	 */
 	public function enqueueDelayedItemsForTimestamp($timestamp)
 	{
-		$item = null;
-		while ($item = ResqueScheduler::nextItemForTimestamp($timestamp)) {
-			$this->log('queueing ' . $item['class'] . ' in ' . $item['queue'] .' [delayed]');
-			
-			Resque_Event::trigger('beforeDelayedEnqueue', array(
-				'queue' => $item['queue'],
-				'class' => $item['class'],
-				'args'  => $item['args'],
-			));
+        $item = null;
+        while ($item = $this->scheduler->nextItemForTimestamp($timestamp)) {
+            $this->log('queueing ' . $item['class'] . ' in ' . $item['queue'] .' [delayed]');
 
-			$payload = array_merge(array($item['queue'], $item['class']), $item['args']);
-			call_user_func_array('Resque::enqueue', $payload);
-		}
+            $this->resque->enqueue($item['queue'], $item['class'], $item['args']);
+        }
 	}
 	
 	/**
