@@ -1,4 +1,6 @@
 <?php
+
+namespace ResqueScheduler;
 /**
 * ResqueScheduler core class to handle scheduling of jobs in the future.
 *
