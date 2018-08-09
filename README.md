@@ -1,21 +1,17 @@
 php-resque-scheduler: PHP Resque Scheduler
 ==========================================
 
-php-resque-scheduler is a PHP port of [resque-scheduler](http://github.com/defunkt/resque),
+php-resque-scheduler is an object-oriented namespaced port of [chrisboulton/php-resque-scheduler](https://github.com/chrisboulton/php-resque-scheduler),
 which adds support for scheduling items in the future to Resque.
 
-The PHP port of resque-scheduler has been designed to be an almost direct-copy
-of the Ruby plugin, and is designed to work with the PHP port of resque,
-[php-resque](http://github.com/chrisboulton/php-resque).
+The namespaced PHP port of has been designed to work with the namespaced PHP port of resque,
+[innogames/php-resque](https://github.com/innogames/php-resque).
 
-At the moment, php-resque-scheduler only supports delayed jobs, which is the
-ability to push a job to the queue and have it run at a certain timestamp, or
-in a number of seconds. Support for recurring jobs (similar to CRON) is planned
-for a future release.
+php-resque-scheduler supports delayed jobs, which is the ability to push a job to the queue and have it run at a certain
+timestamp, or in a number of seconds.
 
-Because the PHP port is almost a direct API copy of the Ruby version, it is also
-compatible with the web interface of the Ruby version, which provides the
-ability to view and manage delayed jobs.
+The php-resque-scheduler is compatible with any redis client that a suitable subset of Redis commands.
+This implementation has been tested with Predis.
 
 ## Delayed Jobs
 
@@ -23,30 +19,27 @@ To quote the documentation for the Ruby resque-scheduler:
 
 > Delayed jobs are one-off jobs that you want to be put into a queue at some
 point in the future. The classic example is sending an email:
-
-    require 'Resque/Resque.php';
-    require 'ResqueScheduler/ResqueScheduler.php';
    
+    $scheduler = new ResqueScheduler($your_client);
     $in = 3600;
-    $args = array('id' => $user->id);
-    ResqueScheduler::enqueueIn($in, 'email', 'SendFollowUpEmail', $args);
+    $args = [];
+    $scheduler->enqueueIn($in, 'yourQueue', YourClass::class, $args);
 
 The above will store the job for 1 hour in the delayed queue, and then pull the
-job off and submit it to the `email` queue in Resque for processing as soon as
+job off and submit it to the `yourQueue` queue in Resque for processing as soon as
 a worker is available.
 
 Instead of passing a relative time in seconds, you can also supply a timestamp
 as either a DateTime object or integer containing a UNIX timestamp to the
 `enqueueAt` method:
 
-	require 'Resque/Resque.php';
-    require 'ResqueScheduler/ResqueScheduler.php';
-    
+	$scheduler = new ResqueScheduler($your_client);
     $time = 1332067214;
-    ResqueScheduler::enqueueAt($time, 'email', 'SendFollowUpEmail', $args);
+    $args = []
+    $scheduler->enqueueAt($time, 'yourQueue', YourClass::class, $args);
 
 	$datetime = new DateTime('2012-03-18 13:21:49');
-	ResqueScheduler::enqueueAt($datetime, 'email', 'SendFollowUpEmail', $args);
+	$scheduler->enqueueAt($datetime, 'yourQueue', YourClass::class, $args);
 
 NOTE: resque-scheduler does not guarantee a job will fire at the time supplied.
 At the time supplied, resque-scheduler will take the job out of the delayed
@@ -61,45 +54,16 @@ worker is responsible for pulling items off the schedule/delayed queue and addin
 them to the queue for resque. This means that for delayed or scheduled jobs to be
 executed, the worker needs to be running.
 
-A basic "up-and-running" resque-scheduler.php file is included that sets up a
-running worker environment is included in the root directory. It accepts many
-of the same environment variables as php-resque:
+A template resque-scheduler.php file is included that needs you to provide an instance of your redis client.
+It accepts many of the same environment variables as php-resque:
 
 * `LOGGING` - Enable logging to STDOUT
 * `VERBOSE` - Enable verbose logging
 * `INTERVAL` - Sleep for this long before checking scheduled/delayed queues
 * `PIDFILE` - Write the PID of the worker out to this file
 
-The resque-scheduler worker requires resque to function. The demo
-resque-scheduler.php worker allows you to supply a `RESQUE_PHP` environment
-variable with the path to Resque.php. If not supplied and resque is not already
-loaded, resque-scheduler will attempt to load it from your include path
-(`require_once 'Resque/Resque.php';'`)
-
-It's easy to start the resque-scheduler worker using resque-scheduler.php:
-    $ RESQUE_PHP=../resque/lib/Resque/Resque.php php resque-scheduler.php
-
-## Event/Hook System
-
-php-resque-scheduler uses the same event system used by php-resque and exposes
-the following events.
-
-### afterSchedule
-
-Called after a job has been added to the schedule. Arguments passed are the
-timestamp, queue of the job, the class name of the job, and the job's arguments.
-
-### beforeDelayedEnqueue
-
-Called immediately after a job has been pulled off the delayed queue and right
-before the job is added to the queue in resque. Arguments passed are the queue
-of the job, the class name of the job, and the job's arguments.
-
 ## Contributors ##
 
-* chrisboulton
-* rayward
-* atorres757
-* tonypiper
-* biinari
-* cballou
+See [php-resque-scheduler](https://github.com/chrisboulton/php-resque-scheduler) for the original contributors list.
+Additional contributors:
+adlenton

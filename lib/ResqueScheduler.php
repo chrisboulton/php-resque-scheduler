@@ -23,11 +23,6 @@ class ResqueScheduler
 	private $client;
 
 	/**
-	 * @var string
-	 */
-	private $prefix
-
-	/**
 	 * ResqueScheduler constructor.
 	 * @param ClientInterface $client
 	 */
