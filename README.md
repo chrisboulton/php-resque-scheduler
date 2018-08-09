@@ -18,8 +18,10 @@ This implementation has been tested with Predis.
 To quote the documentation for the Ruby resque-scheduler:
 
 > Delayed jobs are one-off jobs that you want to be put into a queue at some
-point in the future. The classic example is sending an email:
+point in the future.
    
+    use ResqueScheduler\ResqueScheduler;
+
     $scheduler = new ResqueScheduler($your_client);
     $in = 3600;
     $args = [];
@@ -33,7 +35,9 @@ Instead of passing a relative time in seconds, you can also supply a timestamp
 as either a DateTime object or integer containing a UNIX timestamp to the
 `enqueueAt` method:
 
-	$scheduler = new ResqueScheduler($your_client);
+	use ResqueScheduler\ResqueScheduler;
+
+    $scheduler = new ResqueScheduler($your_client);
     $time = 1332067214;
     $args = []
     $scheduler->enqueueAt($time, 'yourQueue', YourClass::class, $args);
@@ -54,7 +58,7 @@ worker is responsible for pulling items off the schedule/delayed queue and addin
 them to the queue for resque. This means that for delayed or scheduled jobs to be
 executed, the worker needs to be running.
 
-A template resque-scheduler.php file is included that needs you to provide an instance of your redis client.
+A template resque-scheduler.php file is included that needs you to provide an instance of your configured redis client.
 It accepts many of the same environment variables as php-resque:
 
 * `LOGGING` - Enable logging to STDOUT

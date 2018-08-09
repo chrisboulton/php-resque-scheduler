@@ -35,13 +35,15 @@ class ResqueScheduler
 	/**
 	 * Enqueue a job in a given number of seconds from now.
 	 *
-	 * Identical to Resque::enqueue, however the first argument is the number
+	 * Identical to Resque\Resque::enqueue, however the first argument is the number
 	 * of seconds before the job should be executed.
 	 *
 	 * @param int $in Number of seconds from now when the job should be executed.
 	 * @param string $queue The name of the queue to place the job in.
-	 * @param string $class The name of the class that contains the code to execute the job.
+	 * @param string $class The fully namespaced name of the class that contains the code to execute the job.
 	 * @param array $args Any optional arguments that should be passed when the job is executed.
+	 *
+	 * @return void
 	 */
 	public function enqueueIn($in, $queue, $class, array $args = [])
 	{
@@ -51,14 +53,16 @@ class ResqueScheduler
 	/**
 	 * Enqueue a job for execution at a given timestamp.
 	 *
-	 * Identical to Resque::enqueue, however the first argument is a timestamp
+	 * Identical to Resque\Resque::enqueue, however the first argument is a timestamp
 	 * (either UNIX timestamp in integer format or an instance of the DateTime
 	 * class in PHP).
 	 *
 	 * @param DateTime|int $at Instance of PHP DateTime object or int of UNIX timestamp.
 	 * @param string $queue The name of the queue to place the job in.
-	 * @param string $class The name of the class that contains the code to execute the job.
+	 * @param string $class The fully namespaced name of the class that contains the code to execute the job.
 	 * @param array $args Any optional arguments that should be passed when the job is executed.
+	 *
+	 * @return void
 	 */
 	public function enqueueAt($at, $queue, $class, $args = [])
 	{
@@ -73,8 +77,10 @@ class ResqueScheduler
 	 *
 	 * @param DateTime|int $timestamp Timestamp job is scheduled to be run at.
 	 * @param array $item Hash of item to be pushed to schedule.
+	 *
+	 * @return void
 	 */
-	public function delayedPush($timestamp, $item)
+	private function delayedPush($timestamp, $item)
 	{
 		$timestamp = $this->getTimestamp($timestamp);
 		$this->client->rpush('delayed:' . $timestamp, json_encode($item));
@@ -96,11 +102,12 @@ class ResqueScheduler
 	 * Get the number of jobs for a given timestamp in the delayed schedule.
 	 *
 	 * @param DateTime|int $timestamp Timestamp
+	 *
 	 * @return int Number of scheduled jobs.
 	 */
 	public function getDelayedTimestampSize($timestamp)
 	{
-		$timestamp = $this->toTimestamp($timestamp);
+		$timestamp = self::getTimestamp($timestamp);
 		return $this->client->llen('delayed:' . $timestamp, $timestamp);
 	}
 
@@ -117,6 +124,7 @@ class ResqueScheduler
      * @param $queue
      * @param $class
      * @param $args
+	 *
      * @return int number of jobs that were removed
      */
     public function removeDelayed($queue, $class, $args)
@@ -142,7 +150,8 @@ class ResqueScheduler
      * @param $queue
      * @param $class
      * @param $args
-     * @return mixed
+	 *
+     * @return int
      */
     public function removeDelayedJobFromTimestamp($timestamp, $queue, $class, $args)
     {
@@ -160,6 +169,8 @@ class ResqueScheduler
 	 * @param string $queue Name of the queue the job will be placed on.
 	 * @param string $class Name of the job class.
 	 * @param array $args Array of job arguments.
+	 *
+	 * @return array
 	 */
 
 	private function jobToHash($queue, $class, $args)
@@ -179,6 +190,8 @@ class ResqueScheduler
 	 *
 	 * @param string $key Key to count number of items at.
 	 * @param int $timestamp Matching timestamp for $key.
+	 *
+	 * @return void
 	 */
 	private function cleanupTimestamp($key, $timestamp)
 	{
@@ -194,6 +207,7 @@ class ResqueScheduler
 	 * Convert a timestamp in some format in to a unix timestamp as an integer.
 	 *
 	 * @param DateTime|int $timestamp Instance of DateTime or UNIX timestamp.
+	 *
 	 * @return int Timestamp
 	 * @throws InvalidTimestampException
 	 */
@@ -220,7 +234,7 @@ class ResqueScheduler
 	 * that any jobs scheduled for the past when the worker wasn't running are
 	 * also queued up.
 	 *
-	 * @param DateTime|int $timestamp Instance of DateTime or UNIX timestamp.
+	 * @param DateTime|int $at Instance of DateTime or UNIX timestamp.
 	 *                                Defaults to now.
 	 * @return int|false UNIX timestamp, or false if nothing to run.
 	 */
@@ -245,6 +259,7 @@ class ResqueScheduler
 	 * Pop a job off the delayed queue for a given timestamp.
 	 *
 	 * @param DateTime|int $timestamp Instance of DateTime or UNIX timestamp.
+	 *
 	 * @return array Matching job at timestamp.
 	 */
 	public function nextItemForTimestamp($timestamp)
@@ -272,21 +287,6 @@ class ResqueScheduler
 		}
 		else if (empty($queue)) {
 			throw new ResqueException('Jobs must be put in a queue.');
-		}
-		
-		return true;
-	}
-
-	/**
-	 * @param DateTime|int $timestamp
-	 * @return int
-	 */
-	private function toTimestamp($timestamp)
-	{
-		if ($timestamp instanceof DateTime) {
-			return $timestamp->getTimestamp();
-		} else {
-			return $timestamp;
 		}
 	}
 }
