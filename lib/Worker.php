@@ -62,6 +62,11 @@ class Worker implements LoggerAwareInterface
     private $paused;
 
     /**
+     * @var string
+     */
+    private $id;
+
+    /**
      * Worker constructor.
      * @param int $logLevel
      * @param int $interval
@@ -138,11 +143,24 @@ class Worker implements LoggerAwareInterface
         $item = null;
         while ($item = $this->scheduler->nextItemForTimestamp($timestamp)) {
             $this->setCurrentItem($item, $timestamp);
-            $log_message = 'queueing ' . $item['class'] . ' in ' . $item['queue'] .' [delayed]';
-            $this->print($log_message);
+
+            $target_queue = $item['queue'];
+            $class = $item['class'];
+            $arguments = $item['args'];
+            $log_message = 'queueing ' . $class. ' in ' . $target_queue .' [delayed]';
+
+            $data = json_encode(
+                [
+                    'target_queue' => $target_queue,
+                    'run_at' => strftime('%a %b %d %H:%M:%S %Z %Y'),
+                    'args' => $arguments
+                ]
+            );
+            $this->resque->getClient()->set($this->id, $data);
+            $this->printToStdout($log_message);
             $this->logger->debug($log_message);
 
-            $this->resque->enqueue($item['queue'], $item['class'], $item['args']);
+            $this->resque->enqueue($target_queue, $class, $arguments);
             $this->resetCurrentItem();
         }
     }
@@ -176,7 +194,7 @@ class Worker implements LoggerAwareInterface
      *
      * @param string $message Message to output.
      */
-    public function print($message)
+    public function printToStdout($message)
     {
         if($this->logLevel == self::LOG_NORMAL) {
             fwrite(STDOUT, "*** " . $message . "\n");
@@ -212,6 +230,9 @@ class Worker implements LoggerAwareInterface
      */
     private function startup()
     {
+        $this->setId();
+        $this->resque->getClient()->set($this->id . ':started', strftime('%a %b %d %H:%M:%S %Z %Y'));
+
         if (!function_exists('pcntl_signal')) {
             $this->logger->warning('Cannot register signal handlers');
             return;
@@ -228,13 +249,23 @@ class Worker implements LoggerAwareInterface
         $this->logger->notice('Registered signals');
     }
 
+    /**
+     * Handler to quit the worker, also takes care of cleaning everything up.
+     */
     public function shutdownNow() {
         $this->logger->notice('Cleaning up before shutdown');
         $this->teardown();
+        $this->shutdown = true;
     }
 
+    /**
+     * Removes stored status info from redis database and cleans
+     */
     private function teardown()
     {
+        $this->resque->getClient()->del($this->id);
+        $this->resque->getClient()->del($this->id . ':started');
+
         $this->logger->notice('Pushing current task back into redis if necessary.');
         if (!empty($this->current_item)) {
             $item = current($this->current_item);
@@ -252,15 +283,34 @@ class Worker implements LoggerAwareInterface
         $this->resque->reconnect();
     }
 
+    /**
+     * Signal handler for SIGCUSR1, pauses execution with the next interval tick
+     * Note: The current interval will still be processed
+     */
     public function pauseProcessing()
     {
         $this->logger->notice('USR1 received; pausing execution');
         $this->paused = true;
     }
 
+    /**
+     * Signal handler for SIGCONT, resumes execution with the next interval tick
+     */
     public function unPauseProcessing()
     {
         $this->logger->notice('CONT received; resuming execution');
         $this->paused = false;
+    }
+
+    /**
+     * Generates the identifier used to store some information in the redis database
+     * Mainly interesting for potential status pages (like admin tools)
+     */
+    private function setId()
+    {
+        $id = 'delayed_worker:';
+        $id .= function_exists('gethostname') ? gethostname() : php_uname('n');
+        $id .= ':' . getmypid();
+        $this->id = $id;
     }
 }
