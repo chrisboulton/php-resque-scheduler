@@ -29,6 +29,7 @@ if(!empty($INTERVAL)) {
 }
 
 $worker = new ResqueScheduler\Worker($logLevel, $interval, $resque);
+//don't forget to set your logger here!
 
 $PIDFILE = getenv('PIDFILE');
 if ($PIDFILE) {
