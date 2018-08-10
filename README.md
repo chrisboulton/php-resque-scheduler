@@ -66,6 +66,8 @@ It accepts many of the same environment variables as php-resque:
 * `INTERVAL` - Sleep for this long before checking scheduled/delayed queues
 * `PIDFILE` - Write the PID of the worker out to this file
 
+The worker is also capable of handling commong unix signals (see Worker.php for details), so it can be run as a daemon process easily.
+
 ## Contributors ##
 
 See [php-resque-scheduler](https://github.com/chrisboulton/php-resque-scheduler) for the original contributors list.

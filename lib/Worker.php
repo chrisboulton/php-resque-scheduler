@@ -9,11 +9,7 @@ use Resque\Resque;
 
 /**
  * ResqueScheduler worker to handle scheduling of delayed tasks.
- *
- * @package		ResqueScheduler
- * @author		Chris Boulton <chris@bigcommerce.com>
- * @copyright	(c) 2012 Chris Boulton
- * @license		http://www.opensource.org/licenses/mit-license.php
+ * This worker also handles unix signals so it can be run as a daemon process
  */
 class Worker implements LoggerAwareInterface
 {
