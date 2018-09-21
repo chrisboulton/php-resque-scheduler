@@ -66,10 +66,14 @@ It accepts many of the same environment variables as php-resque:
 * `INTERVAL` - Sleep for this long before checking scheduled/delayed queues
 * `PIDFILE` - Write the PID of the worker out to this file
 
-The worker is also capable of handling commong unix signals (see Worker.php for details), so it can be run as a daemon process easily.
+The worker is also capable of handling common unix signals, so it can be run as a daemon process easily:
+* `SIGTERM`, `SIGINT`, `SIGQUIT` - Clean shutdown of the scheduler
+* `SIGUSR1` - Pause processing
+* `SIGCONT` - Continue processing
+* `SIGPIPE` - Trigger a reconnect to the redis database (e.g. useful when if the connection should be lost)
 
 ## Contributors ##
 
 See [php-resque-scheduler](https://github.com/chrisboulton/php-resque-scheduler) for the original contributors list.
 Additional contributors:
-adlenton
+Justus Graf
