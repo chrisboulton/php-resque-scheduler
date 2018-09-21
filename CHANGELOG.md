@@ -1,3 +1,5 @@
+## 2.0 (2.18-08-XX) ##
+
 ## 1.1 (2013-03-11) ##
 
 **Note:** This release is compatible with php-resque 1.0 through 1.2.
