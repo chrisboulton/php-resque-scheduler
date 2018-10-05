@@ -98,7 +98,7 @@ class Worker implements LoggerAwareInterface
 
         while (true) {
             if ($this->shutdown) {
-                $this->logger->info('Exiting now, good bye')
+                $this->logger->info('Exiting now, good bye');
 				return;
 			}
 
