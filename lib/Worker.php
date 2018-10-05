@@ -265,7 +265,7 @@ class Worker implements LoggerAwareInterface
         $this->logger->notice('Pushing current task back into redis if necessary.');
         if (!empty($this->current_item)) {
             $item = current($this->current_item);
-            $this->scheduler->enqueueAt(key($this->current_item), $item['queue'], $item['class'], $item['args'])
+            $this->scheduler->enqueueAt(key($this->current_item), $item['queue'], $item['class'], $item['args']);
 		}
     }
 
