@@ -4,21 +4,27 @@ if (!defined('ROOT')) {
 	define('ROOT', realpath(dirname(__FILE__)) . '/');
 }
 
-require_once ROOT . 'lib/ResqueScheduler.php';
-require_once ROOT . 'lib/Worker.php';
-require_once ROOT . 'lib/Exceptions/InvalidTimestampException.php';
+//expects autoloading to be set up
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
+use ResqueScheduler\Worker;
 
+/** @var Resque $resque */
 $resque = null; //instantiate your resque including the client here
+$log = ROOT . "logs/resque_scheduler_worker.log";
+$logger = new Logger('resque-scheduler');
+$logger->pushHandler(new StreamHandler($log, Logger::DEBUG)); //set desired log level here
+$resque->setLogger($logger);
 
 // Set log level for resque-scheduler
 $logLevel = 0;
 $LOGGING = getenv('LOGGING');
 $VERBOSE = getenv('VERBOSE');
 if(!empty($LOGGING)) {
-	$logLevel = ResqueScheduler\Worker::LOG_NORMAL;
+	$logLevel = Worker::LOG_NORMAL;
 }
 else if(!empty($VERBOSE)) {
-	$logLevel = ResqueScheduler\Worker::LOG_VERBOSE;
+	$logLevel = Worker::LOG_VERBOSE;
 }
 
 // Check for jobs every $interval seconds
@@ -28,7 +34,7 @@ if(!empty($INTERVAL)) {
 	$interval = $INTERVAL;
 }
 
-$worker = new ResqueScheduler\Worker($logLevel, $interval, $resque);
+$worker = new Worker($logLevel, $interval, $resque);
 //don't forget to set your logger here!
 
 $PIDFILE = getenv('PIDFILE');

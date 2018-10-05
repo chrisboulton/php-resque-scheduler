@@ -1,3 +1,6 @@
+## 2.1 (2018-10-05) ##
+Fixed the unix signal handling, extended example process to already set up logging.
+
 ## 2.0 (2018-09-21) ##
 Reworked the scheduler to be object-oriented rather than static and to accept any (compatible) redis client.
 Extended the Worker to react on unix signals, extended logging for production usage.
