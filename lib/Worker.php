@@ -97,6 +97,7 @@ class Worker implements LoggerAwareInterface
         $this->startup();
 
         while (true) {
+            pcntl_signal_dispatch();
             if ($this->shutdown) {
                 $this->logger->info('Exiting now, good bye');
 				return;
@@ -248,7 +249,7 @@ class Worker implements LoggerAwareInterface
     /**
      * Handler to quit the worker, also takes care of cleaning everything up.
      */
-    public function shutdownNow() {
+    public function shutdownNow($signo) {
         $this->logger->notice('Cleaning up before shutdown');
         $this->teardown();
         $this->shutdown = true;
@@ -273,7 +274,7 @@ class Worker implements LoggerAwareInterface
      * Signal handler for SIGPIPE, in the event the redis connection has gone away.
      * Attempts to reconnect to redis, or raises an Exception.
      */
-    public function reestablishRedisConnection()
+    public function reestablishRedisConnection($signo)
     {
         $this->logger->notice('SIGPIPE received; attempting to reconnect');
         $this->resque->reconnect();
@@ -283,7 +284,7 @@ class Worker implements LoggerAwareInterface
      * Signal handler for SIGCUSR1, pauses execution with the next interval tick
      * Note: The current interval will still be processed
      */
-    public function pauseProcessing()
+    public function pauseProcessing($signo)
     {
         $this->logger->notice('USR1 received; pausing execution');
         $this->paused = true;
@@ -292,7 +293,7 @@ class Worker implements LoggerAwareInterface
     /**
      * Signal handler for SIGCONT, resumes execution with the next interval tick
      */
-    public function unPauseProcessing()
+    public function unPauseProcessing($signo)
     {
         $this->logger->notice('CONT received; resuming execution');
         $this->paused = false;
