@@ -22,7 +22,7 @@
 		{ "type": "git", "url": "https://github.com/innogames/php-resque" }
 	],
 	"require": {
-		"innogames/php-resque": "2.5.*",
+		"innogames/php-resque": ">=3.0",
 		"psr/log":            "1.0.0"
 	}
 }
