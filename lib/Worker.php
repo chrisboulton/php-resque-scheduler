@@ -63,6 +63,11 @@ class Worker implements LoggerAwareInterface
     private $id;
 
     /**
+     * @var int
+     */
+    private $pushed_jobs_count;
+
+    /**
      * Worker constructor.
      * @param int $logLevel
      * @param int $interval
@@ -87,8 +92,6 @@ class Worker implements LoggerAwareInterface
      * Every $interval (seconds), the scheduled queue will be checked for jobs
      * that should be pushed to Resque.
      *
-     * @param Resque $resque The configured resque instance to use
-     * @param int $interval How often to check schedules.
      */
     public function work()
     {
@@ -159,6 +162,8 @@ class Worker implements LoggerAwareInterface
 
             $this->resque->enqueue($target_queue, $class, $arguments);
             $this->resetCurrentItem();
+
+            $this->pushed_jobs_count++;
         }
     }
 
@@ -317,5 +322,21 @@ class Worker implements LoggerAwareInterface
         $id .= function_exists('gethostname') ? gethostname() : php_uname('n');
         $id .= ':' . getmypid();
         $this->id = $id;
+    }
+
+    /**
+     * @return string
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * @return int
+     */
+    public function getPushedJobsCount()
+    {
+        return $this->pushed_jobs_count;
     }
 }
