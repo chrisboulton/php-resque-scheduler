@@ -83,6 +83,7 @@ class Worker implements LoggerAwareInterface
 
         $this->shutdown = false;
         $this->resetCurrentItem();
+        $this->setId();
     }
 
 
@@ -232,7 +233,6 @@ class Worker implements LoggerAwareInterface
      */
     private function startup()
     {
-        $this->setId();
         $this->resque->getClient()->set($this->id . ':started', strftime('%a %b %d %H:%M:%S %Z %Y'));
 
         if (!function_exists('pcntl_signal')) {
