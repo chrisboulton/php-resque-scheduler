@@ -121,9 +121,9 @@ class ResqueScheduler
      * also, this is an expensive operation because all delayed keys have tobe
      * searched
      *
-     * @param $queue
-     * @param $class
-     * @param $args
+     * @param string $queue
+     * @param string $class
+     * @param array $args
      *
      * @return int number of jobs that were removed
      */
@@ -146,10 +146,10 @@ class ResqueScheduler
      * queue, class and arguments that you used when you added
      * to the delayed queue
      *
-     * @param $timestamp
-     * @param $queue
-     * @param $class
-     * @param $args
+     * @param DateTime|int $timestamp
+     * @param string $queue
+     * @param string $class
+     * @param array $args
      *
      * @return int
      */
@@ -177,7 +177,7 @@ class ResqueScheduler
     {
         return [
             'class' => $class,
-            'args'  => [$args],
+            'args'  => $args,
             'queue' => $queue,
         ];
     }
