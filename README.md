@@ -19,13 +19,15 @@ To quote the documentation for the Ruby resque-scheduler:
 
 > Delayed jobs are one-off jobs that you want to be put into a queue at some
 point in the future.
-   
-    use ResqueScheduler\ResqueScheduler;
 
-    $scheduler = new ResqueScheduler($your_client);
-    $in = 3600;
-    $args = [];
-    $scheduler->enqueueIn($in, 'yourQueue', YourClass::class, $args);
+```php
+use ResqueScheduler\ResqueScheduler;
+
+$scheduler = new ResqueScheduler($your_client);
+$in = 3600;
+$args = [];
+$scheduler->enqueueIn($in, 'yourQueue', YourClass::class, $args);
+```
 
 The above will store the job for 1 hour in the delayed queue, and then pull the
 job off and submit it to the `yourQueue` queue in Resque for processing as soon as
@@ -35,15 +37,17 @@ Instead of passing a relative time in seconds, you can also supply a timestamp
 as either a DateTime object or integer containing a UNIX timestamp to the
 `enqueueAt` method:
 
-	use ResqueScheduler\ResqueScheduler;
+```php
+use ResqueScheduler\ResqueScheduler;
 
-    $scheduler = new ResqueScheduler($your_client);
-    $time = 1332067214;
-    $args = []
-    $scheduler->enqueueAt($time, 'yourQueue', YourClass::class, $args);
+$scheduler = new ResqueScheduler($your_client);
+$time = 1332067214;
+$args = []
+$scheduler->enqueueAt($time, 'yourQueue', YourClass::class, $args);
 
-	$datetime = new DateTime('2012-03-18 13:21:49');
-	$scheduler->enqueueAt($datetime, 'yourQueue', YourClass::class, $args);
+$datetime = new DateTime('2012-03-18 13:21:49');
+$scheduler->enqueueAt($datetime, 'yourQueue', YourClass::class, $args);
+```
 
 NOTE: resque-scheduler does not guarantee a job will fire at the time supplied.
 At the time supplied, resque-scheduler will take the job out of the delayed
