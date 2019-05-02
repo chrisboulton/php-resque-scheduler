@@ -1,5 +1,7 @@
 <?php
 
+require_once 'vendor/autoload.php';
+
 // Look for an environment variable with 
 $RESQUE_PHP = getenv('RESQUE_PHP');
 if (!empty($RESQUE_PHP)) {
