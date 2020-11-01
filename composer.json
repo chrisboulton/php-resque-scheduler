@@ -1,28 +1,46 @@
 {
-	"name": "innogames/php-resque-scheduler",
-	"type": "library",
-	"description": "Namespaced port of chrisboulton/php-resque-scheduler which adds support for scheduling items in the future to Resque, works with innogames/php-resque",
-	"license": "MIT",
-	"authors": [
-		{
-			"name": "Chris Boulton",
-			"email": "chris@bgigcommerce.com"
-		},
-		{
-			"name": "InnoGames (Grepolis Development Team)",
-			"email": "it@innogames.com"
-		}
-	],
-	"autoload": {
-		"psr-4": {
-			"ResqueScheduler\\": "lib/"
-		}
-	},
-	"repositories": [
-		{ "type": "git", "url": "https://github.com/innogames/php-resque" }
-	],
-	"require": {
-		"innogames/php-resque": ">=3.0",
-		"psr/log":            "1.0.0"
-	}
+    "name": "innogames/php-resque-scheduler",
+    "type": "library",
+    "description": "Namespaced port of chrisboulton/php-resque-scheduler which adds support for scheduling items in the future to Resque, works with innogames/php-resque",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Chris Boulton",
+            "email": "chris@bgigcommerce.com"
+        },
+        {
+            "name": "InnoGames (Grepolis Development Team)",
+            "email": "it@innogames.com"
+        },
+        {
+            "name": "Justus Graf",
+            "email": "justus.graf@innogames.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "ResqueScheduler\\": [
+                "lib/",
+                "test/"
+            ]
+        }
+    },
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/innogames/php-resque"
+        }
+    ],
+    "require": {
+        "php": ">= 8.0",
+        "innogames/php-resque": "dev-php-8-upgrade",
+        "psr/log": "^1.1",
+        "ext-pcntl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "monolog/monolog": "^2.1",
+        "phpunit/phpunit": "^9.4",
+        "predis/predis": ">=1.1"
+    }
 }

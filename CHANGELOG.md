@@ -1,3 +1,9 @@
+## 4.0 ##
+* Introduced strict types
+* Added test coverage
+* Dropped support for php version < 8.0
+* Upgraded dependencies
+
 ## 2.1 (2018-10-05) ##
 Fixed the unix signal handling, extended example process to already set up logging.
 

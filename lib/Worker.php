@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ResqueScheduler;
 
 use DateTime;
@@ -7,85 +9,60 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Resque\Resque;
 
+use function current;
+use function function_exists;
+use function gethostname;
+use function getmypid;
+use function key;
+use function pcntl_signal;
+use function php_uname;
+use function sleep;
+use function strftime;
+
+use const PHP_EOL;
+use const SIGCONT;
+use const SIGINT;
+use const SIGPIPE;
+use const SIGQUIT;
+use const SIGTERM;
+use const SIGUSR1;
+
 /**
  * ResqueScheduler worker to handle scheduling of delayed tasks.
  * This worker also handles unix signals so it can be run as a daemon process
  */
 class Worker implements LoggerAwareInterface
 {
-    const LOG_NONE = 0;
-    const LOG_NORMAL = 1;
-    const LOG_VERBOSE = 2;
+    public const LOG_NONE    = 0;
+    public const LOG_NORMAL  = 1;
+    public const LOG_VERBOSE = 2;
 
-    /**
-     * @var int Current log level of this worker.
-     */
-    protected $logLevel = 0;
+    protected int $logLevel;
+    protected int $interval;
+    protected ResqueScheduler $scheduler;
+    protected Resque $resque;
+    protected LoggerInterface $logger;
+    protected bool $shutdown;
+    private bool $paused;
+    private string $id;
+    private int $pushedJobsCount;
+    /** @var array[] */
+    private array $currentItem;
 
-    /**
-     * @var int Interval to sleep for between checking schedules.
-     */
-    protected $interval = 5;
-
-    /**
-     * @var ResqueScheduler
-     */
-    protected $scheduler;
-
-    /**
-     * @var Resque
-     */
-    protected $resque;
-
-    /**
-     * @var LoggerInterface
-     */
-    protected $logger;
-
-    /**
-     * @var bool
-     */
-    protected $shutdown;
-
-    /**
-     * @var array
-     */
-    private $current_item;
-
-    /**
-     * @var bool
-     */
-    private $paused;
-
-    /**
-     * @var string
-     */
-    private $id;
-
-    /**
-     * @var int
-     */
-    private $pushed_jobs_count;
-
-    /**
-     * Worker constructor.
-     * @param int $logLevel
-     * @param int $interval
-     * @param Resque $resque
-     */
-    public function __construct($logLevel, $interval, Resque $resque)
+    public function __construct(int $logLevel, int $interval, Resque $resque)
     {
-        $this->logLevel = $logLevel;
-        $this->interval = $interval;
-        $this->resque = $resque;
-        $this->scheduler = new ResqueScheduler($resque->getClient());;
-        $this->logger = $resque->getLogger();
+        $this->logLevel  = $logLevel;
+        $this->interval  = $interval;
+        $this->resque    = $resque;
+        $this->scheduler = new ResqueScheduler($resque->getClient());
+        $this->logger    = $resque->getLogger();
 
-        $this->shutdown = false;
+        $this->shutdown        = false;
+        $this->paused          = false;
+        $this->pushedJobsCount = 0;
         $this->resetCurrentItem();
         $this->setId();
     }
-
 
     /**
      * The primary loop for a worker.
@@ -104,8 +81,9 @@ class Worker implements LoggerAwareInterface
             pcntl_signal_dispatch();
             if ($this->shutdown) {
                 $this->logger->info('Exiting now, good bye');
-				return;
-			}
+
+                return;
+            }
 
             if (!$this->paused) {
                 $this->handleDelayedItems();
@@ -123,7 +101,7 @@ class Worker implements LoggerAwareInterface
      *
      * @param DateTime|int $timestamp Search for any items up to this timestamp to schedule.
      */
-    public function handleDelayedItems($timestamp = null)
+    public function handleDelayedItems(DateTime|int $timestamp = null): void
     {
         while (($oldestJobTimestamp = $this->scheduler->nextDelayedTimestamp($timestamp)) !== false) {
             $this->updateProcLine('Processing Delayed Items');
@@ -139,39 +117,119 @@ class Worker implements LoggerAwareInterface
      *
      * @param DateTime|int $timestamp Search for any items up to this timestamp to schedule.
      */
-    public function enqueueDelayedItemsForTimestamp($timestamp)
+    public function enqueueDelayedItemsForTimestamp(DateTime|int $timestamp): void
     {
         $item = null;
         while ($item = $this->scheduler->nextItemForTimestamp($timestamp)) {
             $this->setCurrentItem($item, $timestamp);
 
-            $target_queue = $item['queue'];
-            $class = $item['class'];
-            $arguments = $item['args'];
-            $log_message = 'queueing ' . $class. ' in ' . $target_queue .' [delayed]';
+            $targetQueue = $item['queue'];
+            $class       = $item['class'];
+            $arguments   = $item['args'];
+            $logMessage  = 'queueing ' . $class . ' in ' . $targetQueue . ' [delayed]';
 
             $data = json_encode(
                 [
-                    'target_queue' => $target_queue,
-                    'run_at' => strftime('%a %b %d %H:%M:%S %Z %Y'),
-                    'args' => $arguments
+                    'target_queue' => $targetQueue,
+                    'run_at'       => strftime('%a %b %d %H:%M:%S %Z %Y'),
+                    'args'         => $arguments,
                 ]
             );
             $this->resque->getClient()->set($this->id, $data);
-            $this->printToStdout($log_message);
-            $this->logger->debug($log_message);
+            $this->printToStdout($logMessage);
+            $this->logger->debug($logMessage);
 
-            $this->resque->enqueue($target_queue, $class, $arguments);
+            $this->resque->enqueue($targetQueue, $class, $arguments);
             $this->resetCurrentItem();
 
-            $this->pushed_jobs_count++;
+            $this->pushedJobsCount++;
         }
+    }
+
+    public function printToStdout(string $message)
+    {
+        if ($this->logLevel == self::LOG_NORMAL) {
+            fwrite(STDOUT, '*** ' . $message . PHP_EOL);
+        } elseif ($this->logLevel == self::LOG_VERBOSE) {
+            fwrite(STDOUT, '** [' . strftime('%T %Y-%m-%d') . ']' . $message . PHP_EOL);
+        }
+    }
+
+    public function setLogger(LoggerInterface $logger): void
+    {
+        $this->logger = $logger;
+    }
+
+    /**
+     * Handler to quit the worker, also takes care of cleaning everything up.
+     *
+     * @param int   $signo
+     * @param mixed $signinfo
+     */
+    public function shutdownNow($signo, $signinfo)
+    {
+        $this->logger->notice('Cleaning up before shutdown');
+        $this->teardown();
+        $this->shutdown = true;
+    }
+
+    /**
+     * Signal handler for SIGPIPE, in the event the redis connection has gone away.
+     * Attempts to reconnect to redis, or raises an Exception.
+     *
+     * @param int   $signo
+     * @param mixed $signinfo
+     */
+    public function reestablishRedisConnection($signo, $signinfo)
+    {
+        $this->logger->notice('SIGPIPE received; attempting to reconnect');
+        $this->resque->reconnect();
+    }
+
+    /**
+     * Signal handler for SIGCUSR1, pauses execution with the next interval tick
+     * Note: The current interval will still be processed
+     *
+     * @param int   $signo
+     * @param mixed $signinfo
+     */
+    public function pauseProcessing($signo, $signinfo)
+    {
+        $this->logger->notice('USR1 received; pausing execution');
+        $this->paused = true;
+    }
+
+    /**
+     * Signal handler for SIGCONT, resumes execution with the next interval tick
+     *
+     * @param int   $signo
+     * @param mixed $signinfo
+     */
+    public function unPauseProcessing($signo, $signinfo)
+    {
+        $this->logger->notice('CONT received; resuming execution');
+        $this->paused = false;
+    }
+
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    public function getPushedJobsCount(): int
+    {
+        return $this->pushedJobsCount;
+    }
+
+    public function getScheduler(): ResqueScheduler
+    {
+        return $this->scheduler;
     }
 
     /**
      * Sleep for the defined interval.
      */
-    protected function sleep()
+    protected function sleep(): void
     {
         sleep($this->interval);
     }
@@ -185,158 +243,71 @@ class Worker implements LoggerAwareInterface
      *
      * @param string $status The updated process title.
      */
-    protected function updateProcLine($status)
+    protected function updateProcLine(string $status): void
     {
-        if(function_exists('setproctitle')) {
+        if (function_exists('setproctitle')) {
             setproctitle('resque-scheduler-' . ResqueScheduler::VERSION . ': ' . $status);
         }
     }
 
-    /**
-     * Output a given log message to STDOUT.
-     *
-     * @param string $message Message to output.
-     */
-    public function printToStdout($message)
+    private function setCurrentItem(array $item, DateTime|int $timestamp): void
     {
-        if($this->logLevel == self::LOG_NORMAL) {
-            fwrite(STDOUT, "*** " . $message . "\n");
-        }
-        else if($this->logLevel == self::LOG_VERBOSE) {
-            fwrite(STDOUT, "** [" . strftime('%T %Y-%m-%d') . "] " . $message . "\n");
-        }
+        $this->currentItem[$timestamp] = $item;
     }
 
-    /**
-     * Sets a logger instance on the object
-     *
-     * @param LoggerInterface $logger
-     * @return null
-     */
-    public function setLogger(LoggerInterface $logger)
+    private function resetCurrentItem(): void
     {
-        $this->logger = $logger;
-    }
-
-    private function setCurrentItem($item, $timestamp)
-    {
-        $this->current_item[$timestamp] = $item;
-    }
-
-    private function resetCurrentItem()
-    {
-        $this->current_item = [];
+        $this->currentItem = [];
     }
 
     /**
      * Registers signal handlers to handle cleanup behavior when running as a daemon
      */
-    private function startup()
+    private function startup(): void
     {
         $this->resque->getClient()->set($this->id . ':started', strftime('%a %b %d %H:%M:%S %Z %Y'));
 
         if (!function_exists('pcntl_signal')) {
             $this->logger->warning('Cannot register signal handlers');
+
             return;
         }
 
-        declare(ticks = 1);
-        pcntl_signal(SIGTERM, array($this, 'shutdownNow'));
-        pcntl_signal(SIGINT, array($this, 'shutdownNow'));
-        pcntl_signal(SIGQUIT, array($this, 'shutdownNow'));
-        pcntl_signal(SIGUSR1, array($this, 'pauseProcessing'));
-        pcntl_signal(SIGCONT, array($this, 'unPauseProcessing'));
-        pcntl_signal(SIGPIPE, array($this, 'reestablishRedisConnection'));
+        declare(ticks=1);
+        pcntl_signal(SIGTERM, [$this, 'shutdownNow']);
+        pcntl_signal(SIGINT, [$this, 'shutdownNow']);
+        pcntl_signal(SIGQUIT, [$this, 'shutdownNow']);
+        pcntl_signal(SIGUSR1, [$this, 'pauseProcessing']);
+        pcntl_signal(SIGCONT, [$this, 'unPauseProcessing']);
+        pcntl_signal(SIGPIPE, [$this, 'reestablishRedisConnection']);
 
         $this->logger->notice('Registered signals');
-    }
-
-    /**
-     * Handler to quit the worker, also takes care of cleaning everything up.
-     * @param int $signo
-     * @param mixed $signinfo
-     */
-    public function shutdownNow($signo, $signinfo) {
-        $this->logger->notice('Cleaning up before shutdown');
-        $this->teardown();
-        $this->shutdown = true;
-    }
-
-    /**
-     * Removes stored status info from redis database and cleans
-     */
-    private function teardown()
-    {
-        $this->resque->getClient()->del($this->id);
-        $this->resque->getClient()->del($this->id . ':started');
-
-        $this->logger->notice('Pushing current task back into redis if necessary.');
-        if (!empty($this->current_item)) {
-            $item = current($this->current_item);
-            $this->scheduler->enqueueAt(key($this->current_item), $item['queue'], $item['class'], $item['args']);
-		}
-    }
-
-    /**
-     * Signal handler for SIGPIPE, in the event the redis connection has gone away.
-     * Attempts to reconnect to redis, or raises an Exception.
-     * @param int $signo
-     * @param mixed $signinfo
-     */
-    public function reestablishRedisConnection($signo, $signinfo)
-    {
-        $this->logger->notice('SIGPIPE received; attempting to reconnect');
-        $this->resque->reconnect();
-    }
-
-    /**
-     * Signal handler for SIGCUSR1, pauses execution with the next interval tick
-     * Note: The current interval will still be processed
-     * @param int $signo
-     * @param mixed $signinfo
-     */
-    public function pauseProcessing($signo, $signinfo)
-    {
-        $this->logger->notice('USR1 received; pausing execution');
-        $this->paused = true;
-    }
-
-    /**
-     * Signal handler for SIGCONT, resumes execution with the next interval tick
-     * @param int $signo
-     * @param mixed $signinfo
-     */
-    public function unPauseProcessing($signo, $signinfo)
-    {
-        $this->logger->notice('CONT received; resuming execution');
-        $this->paused = false;
     }
 
     /**
      * Generates the identifier used to store some information in the redis database
      * Mainly interesting for potential status pages (like admin tools)
      */
-    private function setId()
+    private function setId(): void
     {
-        $id = 'delayed_worker:';
-        $id .= function_exists('gethostname') ? gethostname() : php_uname('n');
-        $id .= ':' . getmypid();
+        $id       = 'delayed_worker:';
+        $id       .= function_exists('gethostname') ? gethostname() : php_uname('n');
+        $id       .= ':' . getmypid();
         $this->id = $id;
     }
 
     /**
-     * @return string
+     * Removes stored status info from redis database and cleans
      */
-    public function getId()
+    private function teardown(): void
     {
-        return $this->id;
-    }
+        $this->resque->getClient()->del($this->id);
+        $this->resque->getClient()->del($this->id . ':started');
 
-    /**
-     * @return int
-     */
-    public function getPushedJobsCount()
-    {
-        return $this->pushed_jobs_count;
+        $this->logger->notice('Pushing current task back into redis if necessary.');
+        if (!empty($this->currentItem)) {
+            $item = current($this->currentItem);
+            $this->scheduler->enqueueAt(key($this->currentItem), $item['queue'], $item['class'], $item['args']);
+        }
     }
 }
