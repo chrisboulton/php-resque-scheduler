@@ -71,7 +71,7 @@ class Worker implements LoggerAwareInterface
      * that should be pushed to Resque.
      *
      */
-    public function work()
+    public function work(): void
     {
         $this->updateProcLine('Starting');
         $this->logger->info('Starting to work');

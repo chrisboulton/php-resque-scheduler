@@ -47,10 +47,8 @@ class ResqueScheduler
      * @param string $queue The name of the queue to place the job in.
      * @param string $class The fully namespaced name of the class that contains the code to execute the job.
      * @param array  $args  Any optional arguments that should be passed when the job is executed.
-     *
-     * @return void
      */
-    public function enqueueIn(int $in, string $queue, string $class, array $args = [])
+    public function enqueueIn(int $in, string $queue, string $class, array $args = []): void
     {
         $this->enqueueAt(time() + $in, $queue, $class, $args);
     }
@@ -66,10 +64,8 @@ class ResqueScheduler
      * @param string       $queue The name of the queue to place the job in.
      * @param string       $class The fully namespaced name of the class that contains the code to execute the job.
      * @param array        $args  Any optional arguments that should be passed when the job is executed.
-     *
-     * @return void
      */
-    public function enqueueAt(DateTime|int $at, string $queue, string $class, array $args = [])
+    public function enqueueAt(DateTime|int $at, string $queue, string $class, array $args = []): void
     {
         $this->validateJob($class, $queue);
 
