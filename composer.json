@@ -33,7 +33,7 @@
     ],
     "require": {
         "php": ">= 8.0",
-        "innogames/php-resque": "dev-php-8-upgrade",
+        "innogames/php-resque": "^4.0",
         "psr/log": "^1.1",
         "ext-pcntl": "*",
         "ext-json": "*"
