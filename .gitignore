@@ -4,3 +4,4 @@ composer.lock
 redis.*
 test.log
 settings.json
+.phpunit.result.cache

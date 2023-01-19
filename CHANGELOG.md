@@ -1,3 +1,7 @@
+## 5.0 ##
+* Require php resque version 5.0
+* Add Docker- and Makefile to run the application
+
 ## 4.0 ##
 * Introduced strict types
 * Added test coverage

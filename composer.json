@@ -32,8 +32,8 @@
         }
     ],
     "require": {
-        "php": ">= 8.0",
-        "innogames/php-resque": "^4.0",
+        "php": ">=8.0 <8.2",
+        "innogames/php-resque": "^5.0",
         "psr/log": "^1.1",
         "ext-pcntl": "*",
         "ext-json": "*"

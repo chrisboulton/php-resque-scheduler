@@ -13,6 +13,12 @@ timestamp, or in a number of seconds.
 The php-resque-scheduler is compatible with any redis client that a suitable subset of Redis commands.
 This implementation has been tested with Predis.
 
+## Docker Setup
+To use the docker setup it's recommended to have `docker-compose` installed.\
+Also `make` when you want to use makefile with short and useful commands.
+
+Disclaimer: This setup is has only limited support. It was tested under Ubuntu 22.04.1 LTS.
+
 ## Delayed Jobs
 
 To quote the documentation for the Ruby resque-scheduler:
